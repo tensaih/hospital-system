@@ -1,3 +1,2 @@
 # hospital-system
-hola carlos
-hola jejes
+no mal uses el readme. QUE CARAJOS!
