@@ -123,7 +123,7 @@ patient_t *desencolar(espera_t *cola) {
     if (cola->front == NULL) {
         return NULL;
     }
-
+    
     cola_t *aux = cola->front;
     patient_t *paciente = aux->paciente;
     
@@ -150,24 +150,20 @@ bool colaVacia(espera_t* cola) {
 }
 
 void imprimir_pacientes(espera_t *cola) {
-    // Verificamos que la cola exista y tenga al menos un paciente
     if (cola == NULL || colaVacia(cola)) {
         printf("La cola de pacientes esta vacia o aun no ha sido creada.\n");
         return;
     }
 
-    // Creamos un puntero temporal para "caminar" por la fila sin perder el frente
     cola_t *actual = cola->front;
     
     printf("\n--- LISTA DE PACIENTES CARGADOS ---\n");
     printf("ID\tEdad\tPrio\tLlegada\tAtencion\tP.Empeora\tP.Mejora\n");
     printf("------------------------------------------------------------------------\n");
 
-    // Mientras no lleguemos al final de la fila (NULL)
     while (actual != NULL) {
-        patient_t *p = actual->paciente; // Extraemos el paciente del nodo actual
+        patient_t *p = actual->paciente; 
         
-        // Imprimimos sus datos
         printf("P%03d\t%d\t%d\t%d\t%d\t\t%.2f\t\t%.2f\n", 
                p->id, 
                p->edad, 
@@ -176,8 +172,6 @@ void imprimir_pacientes(espera_t *cola) {
                p->tiempo_atencion, 
                p->prob_empeora, 
                p->prob_mejora);
-        
-        // Avanzamos al siguiente nodo en la fila
         actual = actual->next;
     }
     printf("------------------------------------------------------------------------\n\n");
