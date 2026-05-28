@@ -8,11 +8,11 @@
 #define MIN_PRIORIDAD 1
 #define MAX_PRIORIDAD 4
 
-#define MIN_PROB_MEJORAR 0.20
-#define MAX_PROB_MEJORAR 0.50
+#define MIN_PROB_MEJORAR 0.05
+#define MAX_PROB_MEJORAR 0.10
 
-#define MIN_PROB_EMPEORAR 0.10
-#define MAX_PROB_EMPEORAR 0.30
+#define MIN_PROB_EMPEORAR 0.15
+#define MAX_PROB_EMPEORAR 0.20
 
 #define MIN_TIEMPO_ATENCION 1
 #define MAX_TIEMPO_ATENCION 15
@@ -37,7 +37,7 @@ int main() {
     scanf("%d", &cant_pacientes);
 
     FILE * file;
-    file = fopen("pacientes.txt", "w");
+    file = fopen("bin/pacientes.txt", "w");
     if (file == NULL) {
         printf("Error al abrir el archivo.\n");
         return 1;
