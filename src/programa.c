@@ -31,6 +31,22 @@ typedef struct espera {
     cola_t *final;
 } espera_t;
 
+/* PILA */
+typedef struct registro_cambio {
+    int id_paciente;
+    int prioridad_anterior;
+} registro_cambio_t;
+
+typedef struct nodo_pila {
+    registro_cambio_t datos;
+    struct nodo_pila * siguiente;
+} nodo_pila_t;
+
+typedef struct pila {
+    nodo_pila_t* tope;
+} pila_t;
+
+
 /* Function declarations */
 espera_t* crearColaEspera();
 void encolar(espera_t *, patient_t*);
@@ -63,6 +79,35 @@ int main(){
 }
 
 /* Functions */
+void push(pila_t* pila, int id_paciente, int prioridad_anterior) {
+    // crear nodo
+    nodo_pila_t* nuevo_nodo = (nodo_pila_t*)malloc(sizeof(nodo_pila_t));
+    if (nuevo_nodo == NULL) {
+        printf("Error: No se pudo asignar memoria para el nuevo nodo de la pila.\n");
+        return;
+    }
+    // inicializar nodo con los datos del cambio
+    nuevo_nodo->datos.id_paciente = id_paciente;
+    nuevo_nodo->datos.prioridad_anterior = prioridad_anterior;
+
+    // agregarlo al tope de la pila
+    nuevo_nodo->siguiente = pila->tope; // El nuevo nodo apunta al actual tope
+    pila->tope = nuevo_nodo; // El nuevo nodo ahora es el tope
+}
+
+registro_cambio_t pop(pila_t* pila) {
+    registro_cambio_t value = {-1, -1};
+    if (pila->tope == NULL) {
+        printf("La pila está vacía, no hay cambios para revertir.\n");
+        return value;
+    }
+    nodo_pila_t* aux = pila->tope;
+    value = aux->datos;
+    pila->tope = pila->tope->siguiente;
+    free(aux);
+    return value;
+}
+
 espera_t* crearColaEspera(){
     espera_t* cola = (espera_t *)malloc(sizeof(espera_t));
     if (cola == NULL){
