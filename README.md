@@ -26,7 +26,7 @@ Este programa actúa como una herramienta de configuración inicial. Se encarga 
 ---
 
 ### 2. `programa.c` - *Motor de Simulación (En desarrollo)* ⚙️
-Es el sistema principal. Su propósito es leer los datos generados por `lector.c` y organizarlos en memoria dinámica mediante la implementación de **Colas (Queues)** como Tipos Abstractos de Datos.
+Es el sistema principal. Su propósito es leer los datos generados por `lector.c` y organizarlos en memoria dinámica mediante la implementación de **Colas (Queues)** como Tipos Abstractos de Datos (TDA).
 
 **Estructuras de Datos (TADs) Implementadas:**
 | Estructura | Descripción |
