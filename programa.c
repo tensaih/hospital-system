@@ -21,8 +21,8 @@ typedef struct doc {
 } doc_t;
 
 typedef struct cola {
-    patient_t *paciente; // Apuntador al dato del paciente
-    struct cola *next;   // Apuntador al siguiente nodo
+    patient_t *paciente;
+    struct cola *next;
 } cola_t;
 
 typedef struct espera {
@@ -69,7 +69,7 @@ int cargas_pacientes(espera_t* pacientes, const char *filename){
         return -1;
     }
     int cant_docs, cant_pacientes;
-
+    
     fscanf(file, "%d", &cant_docs);
     fscanf(file, "%d", &cant_pacientes);
 
