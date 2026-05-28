@@ -27,7 +27,7 @@ typedef struct cola {
 typedef struct espera {
     cola_t *front;
     cola_t *final;
-} espera_t
+} espera_t;
 
 espera_t* crearColaEspera();
 
@@ -36,11 +36,13 @@ int main(){
     for (int i = 0; i < 4; i++){
         colas[i] = crearColaEspera();
     }
-    free(colas);
+    for (int i = 0; i < 4; i++){
+        free(colas[i]);
+    }
     return 0;
 }
 
-espera_t* creaColaEspera(){
+espera_t* crearColaEspera(){
     espera_t* cola = (espera_t *)malloc(sizeof(espera_t));
     if (cola == NULL){
         return NULL;
