@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+/* Definitions */
 typedef struct patient {
     int id;
     int edad;
@@ -30,21 +31,28 @@ typedef struct espera {
     cola_t *final;
 } espera_t;
 
+/* Function declarations */
 espera_t* crearColaEspera();
-int cargas_pacientes(espera_t *, const char *);
 void encolar(espera_t *, patient_t*);
+int cargas_pacientes(espera_t *, const char *);
 void imprimir_pacientes(espera_t *);
 
+/* Main function */
 int main(){
+    espera_t* pacientes;
     espera_t* colas[4];
+
+    pacientes = crearColaEspera();
+
     for (int i = 0; i < 4; i++){
         colas[i] = crearColaEspera();
     }
-    espera_t* pacientes;
-    pacientes = crearColaEspera();
     
     int n_docs = cargas_pacientes(pacientes, "pacientes.txt");
-
+    if (n_docs == -1){
+        printf("Hubo un error al cargar los pacientes.\n");
+        return 0;
+    }
     imprimir_pacientes(pacientes);
     
     for (int i = 0; i < 4; i++){
@@ -54,6 +62,7 @@ int main(){
     return 0;
 }
 
+/* Functions */
 espera_t* crearColaEspera(){
     espera_t* cola = (espera_t *)malloc(sizeof(espera_t));
     if (cola == NULL){
@@ -69,7 +78,7 @@ int cargas_pacientes(espera_t* pacientes, const char *filename){
         return -1;
     }
     int cant_docs, cant_pacientes;
-    
+
     fscanf(file, "%d", &cant_docs);
     fscanf(file, "%d", &cant_pacientes);
 
@@ -109,10 +118,41 @@ void encolar(espera_t * cola, patient_t *paciente){
     }
 }
 
+patient_t *desencolar(espera_t *cola) {
+    /* Verificamos que la cola no esté vacía */
+    if (cola->front == NULL) {
+        return NULL;
+    }
+
+    cola_t *aux = cola->front;
+    patient_t *paciente = aux->paciente;
+    
+    cola->front = (cola->front)->next;
+    if (cola->front == NULL) {
+        cola->final = NULL;
+    }
+    free(aux);
+    return paciente;
+}
+
+/* Verifica si todas las colas de espera están vacías */
+bool colasEsperaVacias(espera_t** colas, int n) {
+    for (int i = 0; i < n; ++i) {
+        if (colas[i]->front != NULL) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool colaVacia(espera_t* cola) {
+    return (cola->front == NULL);
+}
+
 void imprimir_pacientes(espera_t *cola) {
     // Verificamos que la cola exista y tenga al menos un paciente
-    if (cola == NULL || cola->front == NULL) {
-        printf("La cola de pacientes esta vacia.\n");
+    if (cola == NULL || colaVacia(cola)) {
+        printf("La cola de pacientes esta vacia o aun no ha sido creada.\n");
         return;
     }
 
