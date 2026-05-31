@@ -399,7 +399,7 @@ historial_t* crearHistorial() {
     if(h) h->cabeza = h->cola = NULL;
     return h;
 }
-[]-[]-[]-[]-NULL
+
 void liberar_historial(historial_t *registro) {
     nodo_historial_t *actual = registro->cabeza;
     while (actual != NULL) {
