@@ -64,7 +64,7 @@ int main(){
         colas[i] = crearColaEspera();
     }
     
-    int n_docs = cargas_pacientes(pacientes, "pacientes.txt");
+    int n_docs = cargas_pacientes(pacientes, "bin/pacientes.txt");
     if (n_docs == -1){
         printf("Hubo un error al cargar los pacientes.\n");
         return 0;
