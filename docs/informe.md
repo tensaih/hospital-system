@@ -27,11 +27,35 @@ Los servicios de urgencias hospitalarias enfrentan constantemente el desafío de
 
 ### 2.2. Funciones Clave por Componente
 
-- **Colas:** `crearColaEspera()`, `encolar()`, `desencolar()`, `extraer_paciente()` (extracción en cualquier posición), `colaVacia()`, `liberar_cola()`.
-- **Gestor de prioridades:** `crearListaColas()`, `obtener_cola_prioridad()`, `todas_colas_vacias()`.
-- **Pila:** `crearPila()`, `push()`, `pop()`, `liberar_pila()`.
-- **Historial:** `crearHistorial()`, `insertar_historial()`, `imprimir_metricas()`, `imprimir_historial_inverso()`.
-- **Carga y visualización:** `cargar_pacientes()`, `imprimir_snapshot()`, `generar_random()`.
+**Gestión de colas (cola FIFO enlazada):**
+- `crearColaEspera()`: Asigna memoria para una nueva cola e inicializa los punteros `front` y `final` a `NULL`, representando una cola vacía lista para recibir pacientes.
+- `encolar()`: Crea un nuevo nodo con el paciente recibido y lo inserta al final de la cola enlazando con el puntero `final`, operando en tiempo O(1).
+- `desencolar()`: Extrae y retorna el paciente del frente de la cola (FIFO), avanza el puntero `front` al siguiente nodo y libera el nodo extraído. Operación O(1).
+- `extraer_paciente()`: Busca un paciente por su ID recorriendo la cola y lo extrae desde **cualquier posición** (frente, medio o final), actualizando correctamente los punteros `front`, `final` y los enlaces intermedios. Es la función más crítica del sistema, ya que habilita el re-triage y el rollback.
+- `colaVacia()`: Retorna `true` si el puntero `front` es `NULL`. Se utiliza como guarda antes de desencolar y como parte de la condición de terminación de la simulación.
+- `liberar_cola()`: Desencola y libera cada paciente iterativamente, luego libera la estructura contenedora, garantizando cero fugas de memoria.
+
+**Gestor de colas por prioridad (lista enlazada de colas):**
+- `crearListaColas()`: Crea dinámicamente 4 nodos (uno por prioridad 1 a 4), cada uno conteniendo su propia cola de espera vacía. Los inserta en orden inverso al frente de la lista para que queden ordenados de mayor a menor urgencia.
+- `obtener_cola_prioridad()`: Recorre la lista buscando el nodo cuya prioridad coincida con la solicitada y retorna su cola de espera. Permite acceder a cualquier cola por su nivel de prioridad.
+- `todas_colas_vacias()`: Recorre todas las colas verificando si alguna contiene pacientes. Retorna `true` solo si todas están vacías; se usa como parte de la condición de terminación del sistema.
+
+**Pila de rollback (pila LIFO enlazada):**
+- `crearPila()`: Asigna memoria e inicializa el `tope` a `NULL` (pila vacía).
+- `push()`: Crea un nodo con el ID del paciente y su prioridad anterior al cambio, lo enlaza como nuevo tope de la pila. Se invoca cada vez que un paciente cambia de prioridad en el triage, registrando el cambio para una posible reversión futura.
+- `pop()`: Desapila el nodo del tope, retorna sus datos (ID y prioridad anterior) y libera el nodo. Si la pila está vacía, retorna un registro centinela `{-1, -1}`. Se usa durante el rollback periódico para obtener los cambios más recientes.
+- `liberar_pila()`: Vacía la pila invocando `pop()` repetidamente y luego libera la estructura.
+
+**Historial de atención (lista doblemente enlazada):**
+- `crearHistorial()`: Asigna memoria e inicializa `cabeza` y `cola` a `NULL`.
+- `insertar_historial()`: Crea un nodo con el paciente dado de alta y el tick de salida, lo inserta al final de la lista doble manteniendo los punteros `prev`/`next`. Permite inserción en O(1) gracias al puntero `cola`.
+- `imprimir_metricas()`: Recorre el historial completo calculando espera promedio, espera máxima y porcentaje de pacientes críticos atendidos dentro de un umbral de 15 ticks, agrupando estadísticas por prioridad original.
+- `imprimir_historial_inverso()`: Recorre la lista desde la `cola` hacia la `cabeza` usando el puntero `prev`, mostrando las altas más recientes primero. Este recorrido inverso solo es posible gracias a la estructura de doble enlace.
+
+**Carga de datos y funciones auxiliares:**
+- `cargar_pacientes()`: Abre el archivo de entrada, lee la cantidad de médicos y pacientes, parsea cada línea con `fscanf` validando exactamente 7 campos. Inicializa los campos dinámicos del paciente y lo encola en la cola de llegada. Reporta errores indicando la línea exacta del problema.
+- `imprimir_snapshot()`: Genera una fotografía del estado del sistema recorriendo la lista de médicos (mostrando su estado) y la lista de colas (contando pacientes por prioridad). Se invoca cada 10 ticks.
+- `generar_random()`: Retorna un `float` aleatorio en [0.0, 1.0] dividiendo `rand()` entre `RAND_MAX`. Se usa en el triage para evaluar probabilísticamente si un paciente mejora o empeora.
 
 ### 2.3. Interacción entre Componentes
 
