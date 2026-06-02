@@ -128,22 +128,26 @@ float generar_random();
 
 /* FUNCION MAIN */
 int main(int argc, char *argv[]) {
-    if  (argc < 2) {
-        printf("\033[1;33m:: SISTEMA DE GESTI\xe0N DE URGENCIAS HOSPITALARIAS ::\033[0m\n");
-        printf("\033[1;32m:: > Uso correcto:\033[1;37m %s \033[1;33m<nombre_archivo.txt>\033[0m\n", argv[0]);
-        return 1;
+    if (argc < 2) {
+        printf(":: SISTEMA DE GESTION DE URGENCIAS HOSPITALARIAS ::\n");
+        printf(":: USO CORRECTO: %s <nombre_archivo.txt>\n", argv[0]);
+        return 0;
     }
 
     srand((unsigned int)time(NULL));
-    /* Inicializamos estructuras */
+
+    /* Inicialización de estructuras */
     espera_t* pacientes_llegada = crearColaEspera();
     lista_colas_t* gestor_colas = crearListaColas();
     pila_t* pila_rollback = crearPila();
     historial_t* registro_historico = crearHistorial();
     
     int n_docs = cargar_pacientes(pacientes_llegada, argv[1]);
-    if  (n_docs == -1) {
-        printf("\033[1;31mHubo un error critico al cargar los pacientes.\033[0m\n");
+    if (n_docs == -1) {
+        printf("[ERROR]: Hubo un error en la lectura del archivo, compruebe que la entrada siga el formato:\n");
+        printf("\t[cant_medicos]\n");
+        printf("\t[cant_pacientes]\n");
+        printf("\tP[ID];[edad];[prioridad(1-4)];[tiempo_llegada];[tiempo_atencion];[prob_empeorar];[prob_mejorar]\n");
         liberar_cola(pacientes_llegada);
         liberar_lista_colas(gestor_colas);
         liberar_pila(pila_rollback);
@@ -153,13 +157,12 @@ int main(int argc, char *argv[]) {
 
     lista_docs_t* gestor_medicos = crearListaMedicos(n_docs);
 
-    printf(".:: Iniciando  %d MEDICOS <<<\n\n", n_docs);
+    printf("::: Iniciando el sistema con %d medicos :::\n\n", n_docs);
 
     int tick = 0;
-    bool simulacion_activa = true;
+    bool hospital_activo = true;
 
-    /* Ciclo principal de simulacion */
-    while(simulacion_activa) {
+    while(hospital_activo) {
         
         /* Llegada de nuevos pacientes */
         while(!colaVacia(pacientes_llegada) && pacientes_llegada->front->paciente->tiempo_llegada <= tick) {
@@ -179,13 +182,13 @@ int main(int argc, char *argv[]) {
                 cola_t *siguiente_seguro = actual->next; /* Guardar puntero para iteracion segura */
                 
                 /* Ignorar pacientes recien reubicados */
-                if  (p->ultimo_tick_triage != tick) {
+                if (p->ultimo_tick_triage != tick) {
                     float chance = generar_random();
                     int nueva_prio = p->prioridad_actual;
                     
                     if (chance < p->prob_empeora && p->prioridad_actual > 1) {
                         nueva_prio--; 
-                    } else if  (chance > (1.0f - p->prob_mejora) && p->prioridad_actual < 4) {
+                    } else if (chance > (1.0f - p->prob_mejora) && p->prioridad_actual < 4) {
                         nueva_prio++; 
                     }
                     
@@ -194,7 +197,7 @@ int main(int argc, char *argv[]) {
                         
                         patient_t *extraido = extraer_paciente(nodo_c->cola_espera, p->id);
                         if (extraido) {
-                            extraido->cambios_triage++; /* Contabilizar retriage */
+                            extraido->cambios_triage++; 
                             extraido->ultimo_tick_triage = tick;
                             printf("[Tick %03d] TRIAGE: P%03d cambia de Prio %d a %d\n", 
                                 tick, extraido->id, extraido->prioridad_actual, nueva_prio);
@@ -203,7 +206,7 @@ int main(int argc, char *argv[]) {
                             encolar(obtener_cola_prioridad(gestor_colas, nueva_prio), extraido);
                             
                             /* Alerta si el paciente tiene varios retriage */
-                            if  (extraido->cambios_triage >= 3) {
+                            if (extraido->cambios_triage >= 3) {
                                 printf("[Tick %03d] ALERTA: P%03d ha cambiado de prioridad %d veces!\n", tick, extraido->id, extraido->cambios_triage);
                             }
                         }
@@ -234,14 +237,14 @@ int main(int argc, char *argv[]) {
                     p_revertir->prioridad_actual = retroceso.prioridad_anterior;
                     encolar(obtener_cola_prioridad(gestor_colas, retroceso.prioridad_anterior), p_revertir);
                 } else {
-                    /* Verif icar si el paciente fue desencolado */
+                    /* Verificar si el paciente fue desencolado */
                     printf("[Tick %03d] ROLLBACK OMITIDO: P%03d ya se encuentra en atencion o finalizado.\n", tick, retroceso.id_paciente);
                 }
             }
             printf("----------------------------------------------------------\n\n");
         }
 
-        /* Finalizacion de atenciones medicas */
+        /* Finalización de atenciones medicas */
         nodo_doc_t* iter_med = gestor_medicos->cabeza;
         while (iter_med != NULL) {
             if (iter_med->medico.occu) {
@@ -266,8 +269,8 @@ int main(int argc, char *argv[]) {
                     if (!colaVacia(c_prio)) {
                         iter_med->medico.curr = desencolar(c_prio);
                         iter_med->medico.occu = true;
-                        printf("[Tick %03d] Medico %d EMPIEZA atencion de P%03d (Prio %d).\n", tick, iter_med->medico.id_medico, iter_med->medico.curr->id, iter_med->medico.curr->prioridad_actual);
-                        break; /* Asignado, dejar de buscar */
+                        printf("[Tick %03d] El medico %d comenzo la atencion del paciente P%03d (Prioridad %d).\n", tick, iter_med->medico.id_medico, iter_med->medico.curr->id, iter_med->medico.curr->prioridad_actual);
+                        break;
                     }
                 }
             }
@@ -284,39 +287,41 @@ int main(int argc, char *argv[]) {
                 actual->paciente->tiempo_espera++;
                 cont_acumulados++;
                 
-                if  (actual->paciente->tiempo_espera == 20) { /* Alerta por espera excesiva */
-                    printf("[Tick %03d] ALERTA: P%03d lleva 20 ticks esperando en Prio %d!\n", tick, actual->paciente->id, nodo_c->prioridad_asignada);
+                if (actual->paciente->tiempo_espera == 20) { /* Alerta por espera excesiva */
+                    printf("[Tick %03d] ALERTA: El paciente P%03d lleva 20 ticks esperando en la cola de prioridad %d!\n", tick, actual->paciente->id, nodo_c->prioridad_asignada);
                 }
                 actual = actual->next;
             }
             
-            if  (cont_acumulados >= 10 && tick % 5 == 0) { /* Alerta por acumulacion */
-                printf("[Tick %03d] ALERTA: Acumulacion de %d pacientes en Prio %d!\n", tick, cont_acumulados, nodo_c->prioridad_asignada);
+            if (cont_acumulados >= 10 && tick % 5 == 0) { /* Alerta por acumulacion */
+                printf("[Tick %03d] ALERTA: Acumulacion de %d pacientes en la cola de prioridad %d!\n", tick, cont_acumulados, nodo_c->prioridad_asignada);
             }
             nodo_c = nodo_c->next;
         }
 
         /* Mostrar snapshot del sistema */
-        if  (tick > 0 && tick % 10 == 0) {
+        if (tick > 0 && tick % 10 == 0) {
             imprimir_snapshot(tick, gestor_colas, gestor_medicos);
         }
 
-        /* Condicion de fin de la simulacion */
+        
         bool docs_trabajando = false;
+        /* Verificar si quedan medicos trabajando */
         iter_med = gestor_medicos->cabeza;
         while (iter_med != NULL) {
             if (iter_med->medico.occu) docs_trabajando = true;
             iter_med = iter_med->next;
         }
-
+        
+        /* Si no quedan pacientes en espera y no hay medicos trabajando finalizará la simulación */
         if (colaVacia(pacientes_llegada) && todas_colas_vacias(gestor_colas) && !docs_trabajando) {
-            simulacion_activa = false;
+            hospital_activo = false;
         } else {
             tick++;
         }
     }
 
-    printf("\n>>> SIMULACION FINALIZADA EN EL TICK %d <<<\n", tick);
+    printf("\n::: SIMULACION FINALIZADA EN EL TICK %d :::\n", tick);
 
     /* Resultados finales y recorrido inverso */
     imprimir_metricas(registro_historico);
@@ -340,7 +345,7 @@ float generar_random() {
 /* Manejo de colas */
 espera_t* crearColaEspera(){
     espera_t* cola = (espera_t *)malloc(sizeof(espera_t));
-    if  (cola == NULL) return NULL;
+    if (cola == NULL) return NULL;
     cola->front = cola->final = NULL;
     return cola;
 }
@@ -361,17 +366,17 @@ void encolar(espera_t * cola, patient_t *paciente){
 }
 
 patient_t *desencolar(espera_t *cola) {
-    if  (cola->front == NULL) return NULL;
+    if (cola->front == NULL) return NULL;
     cola_t *aux = cola->front;
     patient_t *paciente = aux->paciente;
     cola->front = (cola->front)->next;
-    if  (cola->front == NULL) cola->final = NULL;
+    if (cola->front == NULL) cola->final = NULL;
     free(aux);
     return paciente;
 }
 
 patient_t* extraer_paciente(espera_t *cola, int id) {
-    if  (cola->front == NULL) return NULL;
+    if (cola->front == NULL) return NULL;
     
     cola_t *actual = cola->front; 
     cola_t *anterior = NULL;
@@ -381,15 +386,15 @@ patient_t* extraer_paciente(espera_t *cola, int id) {
         actual = actual->next;
     }
 
-    if  (actual == NULL) return NULL;
+    if (actual == NULL) return NULL;
     patient_t *p = actual->paciente;
 
-    if  (anterior == NULL) { 
+    if (anterior == NULL) { 
         cola->front = actual->next;
-        if  (cola->front == NULL) cola->final = NULL;
+        if (cola->front == NULL) cola->final = NULL;
     } else { 
         anterior->next = actual->next;
-        if  (actual->next == NULL) cola->final = anterior;
+        if (actual->next == NULL) cola->final = anterior;
     }
     
     free(actual);
@@ -412,9 +417,10 @@ void liberar_cola(espera_t* cola) {
 /* Listas de manejo dinamico */
 lista_colas_t* crearListaColas() {
     lista_colas_t* lista = (lista_colas_t*)malloc(sizeof(lista_colas_t));
+    if (lista == NULL) return NULL;
     lista->cabeza = NULL;
     /* Inicializar prioridades invertidas para mantener orden */
-    for  (int i = 4; i >= 1; i--) {
+    for (int i = 4; i >= 1; i--) {
         nodo_lista_cola_t* n = (nodo_lista_cola_t*)malloc(sizeof(nodo_lista_cola_t));
         n->prioridad_asignada = i;
         n->cola_espera = crearColaEspera();
@@ -457,7 +463,7 @@ lista_docs_t* crearListaMedicos(int n) {
     lista_docs_t* lista = (lista_docs_t*)malloc(sizeof(lista_docs_t));
     lista->cabeza = NULL;
     /* Lista de medicos (insercion hacia atras) */
-    for  (int i = n; i >= 1; i--) {
+    for (int i = n; i >= 1; i--) {
         nodo_doc_t* nuevo = (nodo_doc_t*)malloc(sizeof(nodo_doc_t));
         nuevo->medico.id_medico = i;
         nuevo->medico.occu = false;
@@ -474,7 +480,7 @@ void liberar_lista_medicos(lista_docs_t* lista) {
         nodo_doc_t* temp = actual;
         actual = actual->next;
         /* Liberar paciente en atencion */
-        if  (temp->medico.curr != NULL) free(temp->medico.curr);
+        if (temp->medico.curr != NULL) free(temp->medico.curr);
         free(temp);
     }
     free(lista);
@@ -483,11 +489,11 @@ void liberar_lista_medicos(lista_docs_t* lista) {
 /* Carga desde archivo */
 int cargar_pacientes(espera_t* pacientes, const char *filename){
     FILE *file = fopen(filename, "r");
-    if  (file == NULL) return -1;
+    if (file == NULL) return -1;
     
     int cant_docs, cant_pacientes;
     
-    /* Comprobar lectura correcta */
+    /* Comprobamos que la lectura sea correcta */
     if (fscanf(file, "%d", &cant_docs) != 1) { 
         fclose(file); 
         return -1; 
@@ -499,15 +505,18 @@ int cargar_pacientes(espera_t* pacientes, const char *filename){
 
     for (int i = 0; i < cant_pacientes; i++){
         patient_t* p = (patient_t *)malloc(sizeof(patient_t));
-        if  (p == NULL) { fclose(file); return -1; }
+        if (p == NULL) { 
+            fclose(file); 
+            return -1; 
+        }
         
         int leidos = fscanf(file, " P%d;%d;%d;%d;%d;%f;%f", 
             &p->id, &p->edad, &p->prioridad_original, 
             &p->tiempo_llegada, &p->tiempo_atencion, 
             &p->prob_empeora, &p->prob_mejora);
         
-        if  (leidos != 7) {
-            printf("Error: for mato corrupto en el archivo. Paciente %d.\n", i+1);
+        if (leidos != 7) {
+            printf("[ERROR]: formato corrupto en el archivo. Paciente %d (Linea %d).\n", i+1, 3 + i);
             free(p);
             fclose(file);
             return -1;
@@ -527,13 +536,14 @@ int cargar_pacientes(espera_t* pacientes, const char *filename){
 /* Manejo de pila */
 pila_t* crearPila() {
     pila_t* p = (pila_t*)malloc(sizeof(pila_t));
-    if  (p) p->tope = NULL;
+    if (p == NULL) return NULL;
+    p->tope = NULL;
     return p;
 }
 
 void push(pila_t* pila, int id_paciente, int prioridad_anterior) {
     nodo_pila_t* nuevo_nodo = (nodo_pila_t*)malloc(sizeof(nodo_pila_t));
-    if  (nuevo_nodo == NULL) return;
+    if (nuevo_nodo == NULL) return;
     nuevo_nodo->datos.id_paciente = id_paciente;
     nuevo_nodo->datos.prioridad_anterior = prioridad_anterior;
     nuevo_nodo->siguiente = pila->tope;
@@ -542,7 +552,7 @@ void push(pila_t* pila, int id_paciente, int prioridad_anterior) {
 
 registro_cambio_t pop(pila_t* pila) {
     registro_cambio_t value = {-1, -1};
-    if  (pila->tope == NULL) return value;
+    if (pila->tope == NULL) return value;
     
     nodo_pila_t* aux = pila->tope;
     value = aux->datos;
@@ -612,41 +622,47 @@ void imprimir_metricas(historial_t *h) {
         actual = actual->next;
     }
 
+    /* Mostramos metricas de colas de espera */
     for (int i = 0; i < 4; i++) {
-        /* Casteo a float antes de dividir */
-        float prom = (conteo_prio[i] > 0) ? (float)sum_espera[i] / (float)conteo_prio[i] : 0.0f;
-        printf("Prioridad %d | Atendidos: %d | Espera Promedio: %.2f ticks | Maxima: %d ticks\n", i + 1, conteo_prio[i], prom, max_espera[i]);
+        float prom;
+        if (conteo_prio[i] > 0) prom = (float)sum_espera[i] / (float)conteo_prio[i];
+        else prom = 0.0f;
+        printf("[Prioridad %d] Atendidos: %d, Espera Promedio: %.2f ticks, Espera Maxima: %d ticks\n", i + 1, conteo_prio[i], prom, max_espera[i]);
     }
     
-    float porcentaje_criticos = (conteo_prio[0] > 0) ? ((float)criticos_a_tiempo / (float)conteo_prio[0]) * 100.0f : 0.0f;
+    float porcentaje_criticos;
+    if (conteo_prio[0] > 0) {
+        porcentaje_criticos = ((float)criticos_a_tiempo / (float)conteo_prio[0]) * 100.0f;
+    } 
+    else porcentaje_criticos = 0.0f;
+
     /* Porcentaje de pacientes criticos atendidos */
     printf("\nPacientes Criticos (Prio 1) atendidos en <= %d ticks: %.1f%%\n", umbral, porcentaje_criticos);
 }
 
 /* Recorrido en reversa para la lista doble */
 void imprimir_historial_inverso(historial_t *h) {
-    if  (h->cola == NULL) return;
+    if (h->cola == NULL) return;
     
     printf("\n--- HISTORIAL DE ATENCION (Mas recientes primero) ---\n");
-    nodo_historial_t *actual = h->cola; /* Iniciar en la cola */
+    nodo_historial_t *actual = h->cola;
     while (actual != NULL) {
         patient_t *p = actual->paciente;
         printf("Alta en Tick %03d -> P%03d (Prio Orig: %d | Prio Final: %d | Espera: %d ticks)\n", 
                actual->tick_salida, p->id, p->prioridad_original, p->prioridad_actual, p->tiempo_espera);
-        actual = actual->prev; /* Desplazarse por prev */
+        actual = actual->prev;
     }
     printf("-------------------------------------------------------\n");
 }
 
-/* Snapshot de urgencias */
 void imprimir_snapshot(int tick, lista_colas_t* l_colas, lista_docs_t* l_docs) {
     printf("\n==== [SNAPSHOT TICK %03d] ====\n", tick);
     
     /* Listado medicos */
     nodo_doc_t* doc = l_docs->cabeza;
     while(doc != NULL) {
-        if (doc->medico.occu) printf("  Medico %d: Atendiendo a P%03d (Restante: %d)\n", doc->medico.id_medico, doc->medico.curr->id, doc->medico.curr->tiempo_restante);
-        else printf("  Medico %d: Libre\n", doc->medico.id_medico);
+        if (doc->medico.occu) printf("->  Medico %d: Atendiendo a P%03d (Restante: %d)\n", doc->medico.id_medico, doc->medico.curr->id, doc->medico.curr->tiempo_restante);
+        else printf("->  Medico %d: Libre\n", doc->medico.id_medico);
         doc = doc->next;
     }
     
@@ -656,7 +672,7 @@ void imprimir_snapshot(int tick, lista_colas_t* l_colas, lista_docs_t* l_docs) {
         int conteo = 0;
         cola_t* p = c->cola_espera->front;
         while(p != NULL) { conteo++; p = p->next; }
-        printf("  Fila Prio %d: %d en espera\n", c->prioridad_asignada, conteo);
+        printf("->  Fila Prio %d: %d en espera\n", c->prioridad_asignada, conteo);
         c = c->next;
     }
     printf("=============================\n\n");
