@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoría — Sistema de Urgencias Hospitalarias</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset & Base ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0b0f1a;
+            --bg-card: #111827;
+            --bg-card-hover: #1a2236;
+            --bg-code: #0d1117;
+            --border: #1e293b;
+            --border-glow: #334155;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-red: #f43f5e;
+            --accent-red-bg: rgba(244, 63, 94, 0.08);
+            --accent-red-border: rgba(244, 63, 94, 0.25);
+            --accent-orange: #f97316;
+            --accent-orange-bg: rgba(249, 115, 22, 0.08);
+            --accent-orange-border: rgba(249, 115, 22, 0.25);
+            --accent-yellow: #eab308;
+            --accent-yellow-bg: rgba(234, 179, 8, 0.08);
+            --accent-yellow-border: rgba(234, 179, 8, 0.25);
+            --accent-blue: #3b82f6;
+            --accent-blue-bg: rgba(59, 130, 246, 0.08);
+            --accent-blue-border: rgba(59, 130, 246, 0.25);
+            --accent-green: #22c55e;
+            --accent-green-bg: rgba(34, 197, 94, 0.08);
+            --accent-green-border: rgba(34, 197, 94, 0.25);
+            --accent-purple: #a855f7;
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        /* ── Background pattern ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -20%, rgba(59,130,246,0.08), transparent),
+                radial-gradient(ellipse 60% 50% at 80% 100%, rgba(168,85,247,0.06), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Layout ── */
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem 6rem;
+        }
+
+        /* ── Header ── */
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(168,85,247,0.06));
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-purple), transparent);
+        }
+        .hero-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .hero h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, #e2e8f0, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        .hero p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        /* ── Summary cards ── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+            text-align: center;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+        .stat-card:hover { border-color: var(--border-glow); transform: translateY(-2px); }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .stat-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+        .stat-red .stat-number { color: var(--accent-red); }
+        .stat-orange .stat-number { color: var(--accent-orange); }
+        .stat-yellow .stat-number { color: var(--accent-yellow); }
+        .stat-blue .stat-number { color: var(--accent-blue); }
+        .stat-green .stat-number { color: var(--accent-green); }
+
+        /* ── Section titles ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin: 3rem 0 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-header .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+        }
+        .badge-red { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
+        .badge-orange { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid var(--accent-orange-border); }
+        .badge-yellow { background: var(--accent-yellow-bg); color: var(--accent-yellow); border: 1px solid var(--accent-yellow-border); }
+        .badge-blue { background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue-border); }
+        .section-header h2 { font-size: 1.25rem; font-weight: 700; }
+
+        /* ── Issue card ── */
+        .issue {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 1.25rem;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .issue:hover { border-color: var(--border-glow); }
+
+        .issue-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1.25rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .issue-header:hover { background: var(--bg-card-hover); }
+
+        .issue-number {
+            flex-shrink: 0;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+        .issue-red .issue-number { background: var(--accent-red-bg); color: var(--accent-red); border: 1px solid var(--accent-red-border); }
+        .issue-orange .issue-number { background: var(--accent-orange-bg); color: var(--accent-orange); border: 1px solid var(--accent-orange-border); }
+        .issue-yellow .issue-number { background: var(--accent-yellow-bg); color: var(--accent-yellow); border: 1px solid var(--accent-yellow-border); }
+        .issue-blue .issue-number { background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid var(--accent-blue-border); }
+
+        .issue-title { font-weight: 700; font-size: 0.95rem; flex: 1; }
+        .issue-toggle {
+            flex-shrink: 0;
+            color: var(--text-muted);
+            transition: transform 0.3s;
+            font-size: 1.2rem;
+        }
+        .issue.open .issue-toggle { transform: rotate(180deg); }
+
+        .issue-meta {
+            display: flex;
+            gap: 0.75rem;
+            padding: 0 1.5rem;
+            margin-top: -0.5rem;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .meta-tag {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.08);
+            color: var(--text-muted);
+            border: 1px solid rgba(148,163,184,0.12);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .issue-body {
+            padding: 0 1.5rem 1.5rem;
+            display: none;
+        }
+        .issue.open .issue-body { display: block; }
+
+        .issue-body p { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem; }
+        .issue-body strong { color: var(--text-primary); }
+
+        /* ── Code blocks ── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .code-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom: 1px solid var(--border);
+        }
+        .code-label-bad { color: var(--accent-red); }
+        .code-label-good { color: var(--accent-green); }
+
+        pre {
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.65;
+            color: #c9d1d9;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        pre .line-num {
+            color: var(--text-muted);
+            user-select: none;
+            margin-right: 1em;
+            min-width: 2.5em;
+            display: inline-block;
+            text-align: right;
+        }
+        pre .hl-red { color: var(--accent-red); }
+        pre .hl-green { color: var(--accent-green); }
+        pre .hl-keyword { color: #ff7b72; }
+        pre .hl-type { color: #79c0ff; }
+        pre .hl-string { color: #a5d6ff; }
+        pre .hl-comment { color: #8b949e; font-style: italic; }
+        pre .hl-num { color: #f2cc60; }
+
+        /* ── Alert boxes ── */
+        .alert {
+            padding: 0.9rem 1.1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.84rem;
+            margin: 1rem 0;
+            line-height: 1.6;
+        }
+        .alert-danger { background: var(--accent-red-bg); border: 1px solid var(--accent-red-border); color: #fca5a5; }
+        .alert-warn { background: var(--accent-orange-bg); border: 1px solid var(--accent-orange-border); color: #fdba74; }
+        .alert-info { background: var(--accent-blue-bg); border: 1px solid var(--accent-blue-border); color: #93c5fd; }
+
+        /* ── Checklist table ── */
+        .checklist {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.85rem;
+        }
+        .checklist th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            background: rgba(59,130,246,0.06);
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .checklist td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .checklist tr:hover td { background: var(--bg-card-hover); }
+        .check-ok { color: var(--accent-green); font-weight: 700; }
+        .check-warn { color: var(--accent-yellow); font-weight: 700; }
+        .check-fail { color: var(--accent-red); font-weight: 700; }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .issue { animation: fadeInUp 0.4s ease both; }
+        .issue:nth-child(2) { animation-delay: 0.05s; }
+        .issue:nth-child(3) { animation-delay: 0.1s; }
+        .issue:nth-child(4) { animation-delay: 0.15s; }
+        .issue:nth-child(5) { animation-delay: 0.2s; }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .wrapper { padding: 1.5rem 1rem 4rem; }
+            .hero h1 { font-size: 1.4rem; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+
+    <!-- ═══════════════ HERO ═══════════════ -->
+    <header class="hero">
+        <div class="hero-icon">🏥</div>
+        <h1>Auditoría de Código — programa.c</h1>
+        <p>Sistema de Simulación de Urgencias Hospitalarias &middot; Revisión exhaustiva contra la especificación</p>
+    </header>
+
+    <!-- ═══════════════ STATS ═══════════════ -->
+    <div class="summary-grid">
+        <div class="stat-card stat-red">
+            <div class="stat-number">6</div>
+            <div class="stat-label">Críticos</div>
+        </div>
+        <div class="stat-card stat-orange">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Lógica</div>
+        </div>
+        <div class="stat-card stat-yellow">
+            <div class="stat-number">4</div>
+            <div class="stat-label">Faltantes</div>
+        </div>
+        <div class="stat-card stat-blue">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Calidad</div>
+        </div>
+        <div class="stat-card stat-green">
+            <div class="stat-number">8</div>
+            <div class="stat-label">Aprobados</div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 1: ERRORES CRÍTICOS (REPROBATORIOS)           -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="section-header">
+        <span class="badge badge-red">&#x26D4; Reprobatorio</span>
+        <h2>Errores Críticos</h2>
+    </div>
+
+    <!-- ── Issue 1 ── -->
+    <div class="issue issue-red open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">1</span>
+            <span class="issue-title">Array de médicos viola la restricción de no usar arreglos</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Línea 91, 107–111</span>
+        </div>
+        <div class="issue-body">
+            <p>La especificación prohíbe <strong>explícitamente</strong> el uso de arreglos como sustituto de estructuras dinámicas. El arreglo de médicos (<code>doc_t*</code>) y el arreglo estático <code>colas[4]</code> violan esta regla.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Código Actual</div>
+<pre><span class="line-num">91</span>  <span class="hl-type">espera_t</span>* colas[<span class="hl-num">4</span>];  <span class="hl-comment">// ← Arreglo estático</span>
+<span class="line-num">92</span>  <span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++){
+<span class="line-num">93</span>      colas[i] = crearColaEspera();
+<span class="line-num">94</span>  }
+<span class="line-num">...</span>
+<span class="line-num">107</span> <span class="hl-type">doc_t</span>* medicos = (<span class="hl-type">doc_t</span>*)malloc(n_docs * <span class="hl-keyword">sizeof</span>(<span class="hl-type">doc_t</span>));
+<span class="line-num">108</span> <span class="hl-keyword">for</span>(<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; n_docs; i++) {
+<span class="line-num">109</span>     medicos[i].occu = <span class="hl-num">false</span>;
+<span class="line-num">110</span>     medicos[i].curr = <span class="hl-num">NULL</span>;
+<span class="line-num">111</span> }</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución Propuesta</div>
+<pre><span class="hl-comment">// ── Nueva estructura para lista enlazada de médicos ──</span>
+<span class="hl-keyword">typedef struct</span> <span class="hl-type">nodo_doc</span> {
+    <span class="hl-type">doc_t</span> medico;
+    <span class="hl-keyword">struct</span> <span class="hl-type">nodo_doc</span> *next;
+} <span class="hl-type">nodo_doc_t</span>;
+
+<span class="hl-keyword">typedef struct</span> <span class="hl-type">lista_medicos</span> {
+    <span class="hl-type">nodo_doc_t</span> *cabeza;
+    <span class="hl-type">int</span> cantidad;
+} <span class="hl-type">lista_medicos_t</span>;
+
+<span class="hl-comment">// ── Función para crear la lista de médicos ──</span>
+<span class="hl-type">lista_medicos_t</span>* crearListaMedicos(<span class="hl-type">int</span> n) {
+    <span class="hl-type">lista_medicos_t</span>* lista = (<span class="hl-type">lista_medicos_t</span>*)malloc(<span class="hl-keyword">sizeof</span>(<span class="hl-type">lista_medicos_t</span>));
+    lista->cabeza = <span class="hl-num">NULL</span>;
+    lista->cantidad = n;
+    <span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; n; i++) {
+        <span class="hl-type">nodo_doc_t</span>* nuevo = (<span class="hl-type">nodo_doc_t</span>*)malloc(<span class="hl-keyword">sizeof</span>(<span class="hl-type">nodo_doc_t</span>));
+        nuevo->medico.occu = <span class="hl-num">false</span>;
+        nuevo->medico.curr = <span class="hl-num">NULL</span>;
+        nuevo->next = lista->cabeza;
+        lista->cabeza = nuevo;
+    }
+    <span class="hl-keyword">return</span> lista;
+}
+
+<span class="hl-comment">// ── En main(), reemplazar líneas 91-94 y 107-111: ──</span>
+<span class="hl-type">lista_medicos_t</span>* medicos = crearListaMedicos(n_docs);
+
+<span class="hl-comment">// ── Para colas[4], usar una lista enlazada de 4 colas: ──</span>
+<span class="hl-keyword">typedef struct</span> <span class="hl-type">nodo_cola_prio</span> {
+    <span class="hl-type">espera_t</span>* cola;
+    <span class="hl-type">int</span> prioridad;
+    <span class="hl-keyword">struct</span> <span class="hl-type">nodo_cola_prio</span>* next;
+} <span class="hl-type">nodo_cola_prio_t</span>;
+<span class="hl-comment">// Crear 4 nodos enlazados, uno por cada prioridad (1-4)</span></pre>
+            </div>
+
+            <div class="alert alert-danger">
+                <strong>⚠ Impacto:</strong> Este cambio requiere actualizar <strong>todos</strong> los bucles <code>for</code> que iteran sobre médicos (líneas 184, 197, 222) para usar recorrido de lista enlazada con punteros, en vez de indexación <code>[i]</code>.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 2 ── -->
+    <div class="issue issue-red open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">2</span>
+            <span class="issue-title">Rollback hardcodeado en tick 50 — lógica no funcional</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 161–181</span>
+        </div>
+        <div class="issue-body">
+            <p>El enunciado dice: <em>"No se evaluarán soluciones con lógica hardcodeada"</em>. El rollback solo se ejecuta si la simulación alcanza el tick 50 y siempre revierte exactamente 2 cambios.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Código Actual</div>
+<pre><span class="line-num">161</span> <span class="hl-comment">// C. EVENTO DE ROLLBACK (Ejemplo estático en el Tick 50)</span>
+<span class="line-num">162</span> <span class="hl-keyword">if</span>(tick == <span class="hl-num">50</span>) {
+<span class="line-num">163</span>     printf(<span class="hl-string">"\n--- EVENTO: APLICANDO ROLLBACK A 2 PACIENTES ---\n"</span>);
+<span class="line-num">164</span>     <span class="hl-keyword">for</span>(<span class="hl-type">int</span> r = <span class="hl-num">0</span>; r &lt; <span class="hl-num">2</span>; r++) {
+<span class="line-num">165</span>         <span class="hl-type">registro_cambio_t</span> retroceso = pop(pila_rollback);
+...</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución Propuesta — Rollback dinámico</div>
+<pre><span class="hl-comment">// Opción A: Rollback periódico cada N ticks</span>
+<span class="hl-keyword">#define</span> ROLLBACK_INTERVAL <span class="hl-num">20</span>
+<span class="hl-keyword">#define</span> ROLLBACK_COUNT    <span class="hl-num">3</span>
+
+<span class="hl-comment">// Dentro del bucle principal, reemplazar las líneas 161-181:</span>
+<span class="hl-keyword">if</span> (tick > <span class="hl-num">0</span> && tick % ROLLBACK_INTERVAL == <span class="hl-num">0</span>
+    && pila_rollback->tope != <span class="hl-num">NULL</span>) {
+    printf(<span class="hl-string">"\n--- ROLLBACK PERIODICO (Tick %d) ---\n"</span>, tick);
+    <span class="hl-keyword">for</span> (<span class="hl-type">int</span> r = <span class="hl-num">0</span>; r &lt; ROLLBACK_COUNT
+         && pila_rollback->tope != <span class="hl-num">NULL</span>; r++) {
+        <span class="hl-type">registro_cambio_t</span> retroceso = pop(pila_rollback);
+        <span class="hl-comment">// ... misma lógica de búsqueda y reubicación</span>
+    }
+}
+
+<span class="hl-comment">// Opción B: Rollback al final de la simulación</span>
+<span class="hl-comment">// Después de la línea 233 (simulación finalizada):</span>
+printf(<span class="hl-string">"\n--- ROLLBACK FINAL: Deshaciendo últimos %d cambios ---\n"</span>, N);
+<span class="hl-keyword">while</span> (pila_rollback->tope != <span class="hl-num">NULL</span>) {
+    <span class="hl-type">registro_cambio_t</span> retroceso = pop(pila_rollback);
+    <span class="hl-comment">// Aplicar reversión...</span>
+}</pre>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>💡 Tip:</strong> Combinar ambas opciones demuestra mayor dominio. Usar rollback periódico durante la simulación Y un rollback final que deshaga los N últimos cambios.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 3 ── -->
+    <div class="issue issue-red open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">3</span>
+            <span class="issue-title">Fugas de memoria masivas — patient_t, pila y colas</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 239–245, 403–411</span>
+        </div>
+        <div class="issue-body">
+            <p>Hay <strong>tres fugas</strong> independientes. El enunciado exige <em>"manejo correcto de memoria dinámica, evitando pérdidas de memoria y referencias inválidas"</em>.</p>
+
+            <p><strong>Fuga 3a:</strong> Los <code>patient_t*</code> se crean con <code>malloc</code> (línea 338) pero nunca se liberan. <code>liberar_historial</code> libera los nodos pero no los pacientes apuntados.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Código Actual — línea 403</div>
+<pre><span class="line-num">403</span> <span class="hl-keyword">void</span> liberar_historial(<span class="hl-type">historial_t</span> *registro) {
+<span class="line-num">404</span>     <span class="hl-type">nodo_historial_t</span> *actual = registro->cabeza;
+<span class="line-num">405</span>     <span class="hl-keyword">while</span> (actual != <span class="hl-num">NULL</span>) {
+<span class="line-num">406</span>         <span class="hl-type">nodo_historial_t</span> *temp = actual;
+<span class="line-num">407</span>         actual = actual->next;
+<span class="line-num">408</span>         free(temp); <span class="hl-comment">// ← Solo libera el nodo, NO el patient_t*</span>
+<span class="line-num">409</span>     }
+<span class="line-num">410</span>     free(registro);
+<span class="line-num">411</span> }</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución — Liberar paciente dentro del nodo</div>
+<pre><span class="hl-keyword">void</span> liberar_historial(<span class="hl-type">historial_t</span> *registro) {
+    <span class="hl-type">nodo_historial_t</span> *actual = registro->cabeza;
+    <span class="hl-keyword">while</span> (actual != <span class="hl-num">NULL</span>) {
+        <span class="hl-type">nodo_historial_t</span> *temp = actual;
+        actual = actual->next;
+        <span class="hl-green">free(temp->paciente);</span>  <span class="hl-comment">// ✅ Liberar el paciente</span>
+        free(temp);            <span class="hl-comment">// ✅ Liberar el nodo</span>
+    }
+    free(registro);
+}</pre>
+            </div>
+
+            <p><strong>Fuga 3b:</strong> La pila se libera sin vaciar sus nodos (línea 244).</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución — Agregar función liberar_pila</div>
+<pre><span class="hl-keyword">void</span> liberar_pila(<span class="hl-type">pila_t</span>* pila) {
+    <span class="hl-keyword">while</span> (pila->tope != <span class="hl-num">NULL</span>) {
+        pop(pila);  <span class="hl-comment">// pop() ya hace free() del nodo</span>
+    }
+    free(pila);
+}
+
+<span class="hl-comment">// En main(), reemplazar línea 244:</span>
+<span class="hl-red">free(pila_rollback);</span>              <span class="hl-comment">// ❌ Antes</span>
+<span class="hl-green">liberar_pila(pila_rollback);</span>       <span class="hl-comment">// ✅ Después</span></pre>
+            </div>
+
+            <p><strong>Fuga 3c:</strong> Las colas de prioridad se liberan sin vaciar nodos internos (líneas 239-241).</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución — Agregar función liberar_cola</div>
+<pre><span class="hl-keyword">void</span> liberar_cola(<span class="hl-type">espera_t</span>* cola) {
+    <span class="hl-keyword">while</span> (!colaVacia(cola)) {
+        <span class="hl-type">patient_t</span>* p = desencolar(cola);
+        free(p);  <span class="hl-comment">// Liberar paciente si aún está en cola</span>
+    }
+    free(cola);
+}
+
+<span class="hl-comment">// En main(), reemplazar líneas 239-242:</span>
+<span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++) {
+    liberar_cola(colas[i]);
+}
+liberar_cola(pacientes);</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 4 ── -->
+    <div class="issue issue-red open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">4</span>
+            <span class="issue-title">Bug de división entera en cálculo de métricas</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 457, 465</span>
+        </div>
+        <div class="issue-body">
+            <p>La división entre dos <code>int</code> produce un resultado entero truncado. El cast a <code>float</code> se aplica <strong>después</strong> de la división, perdiendo los decimales. Ejemplo: <code>7 / 3 = 2</code> en vez de <code>2.33</code>.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Código Actual</div>
+<pre><span class="line-num">457</span> prom = (<span class="hl-type">float</span>)(sum_espera[i] / conteo_prio[i]);
+<span class="line-num">...</span>
+<span class="line-num">465</span> porcentaje_criticos = (<span class="hl-type">float</span>)(criticos_a_tiempo / conteo_prio[<span class="hl-num">0</span>]) * <span class="hl-num">100.0</span>;</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución</div>
+<pre><span class="hl-comment">// Línea 457: castear ANTES de dividir</span>
+prom = (<span class="hl-type">float</span>)sum_espera[i] / (<span class="hl-type">float</span>)conteo_prio[i];
+
+<span class="hl-comment">// Línea 465: castear ANTES de dividir</span>
+porcentaje_criticos = ((<span class="hl-type">float</span>)criticos_a_tiempo / conteo_prio[<span class="hl-num">0</span>]) * <span class="hl-num">100.0</span>;</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 5 ── -->
+    <div class="issue issue-red open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">5</span>
+            <span class="issue-title">Archivo de entrada hardcodeado — debe recibirse por argv</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 86, 100</span>
+        </div>
+        <div class="issue-body">
+            <p>La especificación requiere: <em>"El programa debe ser capaz de ejecutarse con distintos archivos de entrada sin requerir modificaciones en el código fuente"</em>.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Código Actual</div>
+<pre><span class="line-num">86</span>  <span class="hl-type">int</span> main() {
+<span class="line-num">...</span>
+<span class="line-num">100</span> <span class="hl-type">int</span> n_docs = cargar_pacientes(pacientes, <span class="hl-string">"bin/pacientes.txt"</span>);</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución</div>
+<pre><span class="hl-type">int</span> main(<span class="hl-type">int</span> argc, <span class="hl-type">char</span>* argv[]) {
+    <span class="hl-keyword">if</span> (argc &lt; <span class="hl-num">2</span>) {
+        printf(<span class="hl-string">"Uso: %s &lt;archivo_pacientes&gt;\n"</span>, argv[<span class="hl-num">0</span>]);
+        <span class="hl-keyword">return</span> <span class="hl-num">1</span>;
+    }
+    <span class="hl-comment">// ...</span>
+    <span class="hl-type">int</span> n_docs = cargar_pacientes(pacientes, argv[<span class="hl-num">1</span>]);
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 6 ── -->
+    <div class="issue issue-red open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">6</span>
+            <span class="issue-title">Probabilidades de mejora en lector.c completamente irreales (0.999–1.0)</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">lector.c</span>
+            <span class="meta-tag">Líneas 11–12</span>
+        </div>
+        <div class="issue-body">
+            <p>La especificación recomienda <em>"probabilidad de mejorar entre 0.02 y 0.10"</em>. Los valores actuales de <code>0.999 a 1.0</code> hacen que <strong>todos</strong> los pacientes mejoren en <strong>cada</strong> tick, invalidando toda la simulación.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Código Actual</div>
+<pre><span class="line-num">11</span> <span class="hl-keyword">#define</span> MIN_PROB_MEJORAR <span class="hl-num">0.999</span>
+<span class="line-num">12</span> <span class="hl-keyword">#define</span> MAX_PROB_MEJORAR <span class="hl-num">1</span></pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución</div>
+<pre><span class="hl-keyword">#define</span> MIN_PROB_MEJORAR <span class="hl-num">0.02</span>
+<span class="hl-keyword">#define</span> MAX_PROB_MEJORAR <span class="hl-num">0.10</span></pre>
+            </div>
+
+            <div class="alert alert-danger">
+                <strong>⚠ Impacto:</strong> Con las probabilidades actuales, la simulación produce resultados completamente falsos. Los pacientes nunca permanecen en prioridades altas porque migran a prioridad 4 en pocos ticks.
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 2: ERRORES DE LÓGICA                          -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="section-header">
+        <span class="badge badge-orange">&#x26A0; Lógica</span>
+        <h2>Errores de Lógica</h2>
+    </div>
+
+    <!-- ── Issue 7 ── -->
+    <div class="issue issue-orange open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">7</span>
+            <span class="issue-title">Iteración insegura durante el triage dinámico</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 129–158</span>
+        </div>
+        <div class="issue-body">
+            <p>El código avanza el iterador <code>actual = actual->next</code> antes de extraer, lo cual evita el caso más obvio. Sin embargo, si otro paciente <strong>posterior</strong> en la misma cola fue extraído en una iteración anterior (dentro del mismo bucle), el puntero <code>actual->next</code> puede apuntar a memoria liberada.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución — Usar lista de cambios pendientes</div>
+<pre><span class="hl-comment">// En vez de modificar la cola DURANTE la iteración,</span>
+<span class="hl-comment">// recolectar los cambios y aplicarlos DESPUÉS:</span>
+
+<span class="hl-keyword">typedef struct</span> <span class="hl-type">cambio_pendiente</span> {
+    <span class="hl-type">int</span> id_paciente;
+    <span class="hl-type">int</span> cola_origen;   <span class="hl-comment">// índice 0-3</span>
+    <span class="hl-type">int</span> nueva_prio;
+} <span class="hl-type">cambio_pendiente_t</span>;
+
+<span class="hl-comment">// 1. Iterar y recolectar cambios (sin modificar colas)</span>
+<span class="hl-comment">// 2. Aplicar todos los cambios después del bucle</span>
+<span class="hl-keyword">for</span> (<span class="hl-type">int</span> c = <span class="hl-num">0</span>; c &lt; total_cambios; c++) {
+    patient_t *extraido = extraer_paciente(
+        colas[cambios[c].cola_origen],
+        cambios[c].id_paciente
+    );
+    <span class="hl-keyword">if</span> (extraido) {
+        push(pila_rollback, extraido->id, extraido->prioridad_actual);
+        extraido->prioridad_actual = cambios[c].nueva_prio;
+        encolar(colas[cambios[c].nueva_prio - <span class="hl-num">1</span>], extraido);
+    }
+}</pre>
+            </div>
+
+            <div class="alert alert-warn">
+                <strong>Nota:</strong> Puedes usar una cola o lista enlazada para los cambios pendientes (no un arreglo) y así cumplir con la restricción de no usar arreglos.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 8 ── -->
+    <div class="issue issue-orange open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">8</span>
+            <span class="issue-title">Rollback falla si el paciente ya está siendo atendido</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 168–172</span>
+        </div>
+        <div class="issue-body">
+            <p>El rollback solo busca en las colas de espera. Si el paciente ya fue asignado a un médico o ya fue atendido, el registro se pierde silenciosamente sin avisar al usuario.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución — Buscar también en médicos y notificar</div>
+<pre><span class="hl-type">patient_t</span>* p_revertir = <span class="hl-num">NULL</span>;
+<span class="hl-comment">// 1. Buscar en las colas</span>
+<span class="hl-keyword">for</span>(<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++) {
+    p_revertir = extraer_paciente(colas[i], retroceso.id_paciente);
+    <span class="hl-keyword">if</span>(p_revertir) <span class="hl-keyword">break</span>;
+}
+<span class="hl-keyword">if</span>(p_revertir) {
+    <span class="hl-comment">// Aplicar rollback normalmente...</span>
+} <span class="hl-keyword">else</span> {
+    <span class="hl-comment">// Paciente no está en ninguna cola</span>
+    printf(<span class="hl-string">"[Tick %03d] ROLLBACK: P%03d no encontrado en colas "</span>
+           <span class="hl-string">"(en atencion o ya atendido). Omitido.\n"</span>,
+           tick, retroceso.id_paciente);
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 9 ── -->
+    <div class="issue issue-orange open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">9</span>
+            <span class="issue-title">No se verifica el retorno de fscanf — comportamiento indefinido</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 334–341</span>
+        </div>
+        <div class="issue-body">
+            <p>Si el archivo tiene formato incorrecto, <code>fscanf</code> no inicializa las variables, lo cual produce <strong>comportamiento indefinido</strong>.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución</div>
+<pre><span class="hl-keyword">if</span> (fscanf(file, <span class="hl-string">"%d"</span>, &amp;cant_docs) != <span class="hl-num">1</span>) {
+    fclose(file);
+    <span class="hl-keyword">return</span> -<span class="hl-num">1</span>;
+}
+<span class="hl-keyword">if</span> (fscanf(file, <span class="hl-string">"%d"</span>, &amp;cant_pacientes) != <span class="hl-num">1</span>) {
+    fclose(file);
+    <span class="hl-keyword">return</span> -<span class="hl-num">1</span>;
+}
+
+<span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; cant_pacientes; i++) {
+    <span class="hl-type">patient_t</span>* p = (<span class="hl-type">patient_t</span>*)malloc(<span class="hl-keyword">sizeof</span>(<span class="hl-type">patient_t</span>));
+    <span class="hl-keyword">if</span> (!p) { fclose(file); <span class="hl-keyword">return</span> -<span class="hl-num">1</span>; }
+
+    <span class="hl-type">int</span> leidos = fscanf(file, <span class="hl-string">" P%d;%d;%d;%d;%d;%f;%f"</span>,
+        &amp;p->id, &amp;p->edad, &amp;p->prioridad_original,
+        &amp;p->tiempo_llegada, &amp;p->tiempo_atencion,
+        &amp;p->prob_empeora, &amp;p->prob_mejora);
+
+    <span class="hl-keyword">if</span> (leidos != <span class="hl-num">7</span>) {
+        printf(<span class="hl-string">"Error: Formato incorrecto en paciente %d\n"</span>, i+<span class="hl-num">1</span>);
+        free(p);
+        fclose(file);
+        <span class="hl-keyword">return</span> -<span class="hl-num">1</span>;
+    }
+    <span class="hl-comment">// ... continuar normalmente</span>
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 3: FUNCIONALIDADES FALTANTES                  -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="section-header">
+        <span class="badge badge-yellow">&#x2753; Faltante</span>
+        <h2>Funcionalidades No Implementadas</h2>
+    </div>
+
+    <!-- ── Issue 10 ── -->
+    <div class="issue issue-yellow open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">10</span>
+            <span class="issue-title">No hay recorrido inverso del historial (lista doblemente enlazada)</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Agregar después de línea 423</span>
+        </div>
+        <div class="issue-body">
+            <p>Los punteros <code>prev</code> existen en la estructura (línea 56) pero <strong>nunca se usan</strong>. El enunciado requiere explícitamente <em>"recorridos en ambos sentidos"</em>.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Agregar — Recorrido inverso del historial</div>
+<pre><span class="hl-keyword">void</span> imprimir_historial_inverso(<span class="hl-type">historial_t</span> *h) {
+    <span class="hl-keyword">if</span> (h->cola == <span class="hl-num">NULL</span>) {
+        printf(<span class="hl-string">"Historial vacío.\n"</span>);
+        <span class="hl-keyword">return</span>;
+    }
+    printf(<span class="hl-string">"\n--- HISTORIAL (Orden Inverso) ---\n"</span>);
+    printf(<span class="hl-string">"%-8s %-6s %-10s %-12s %-10s\n"</span>,
+           <span class="hl-string">"ID"</span>, <span class="hl-string">"Edad"</span>, <span class="hl-string">"Prio Orig"</span>, <span class="hl-string">"Tick Salida"</span>, <span class="hl-string">"T. Espera"</span>);
+
+    <span class="hl-type">nodo_historial_t</span> *actual = h->cola;  <span class="hl-comment">// Empezar desde el final</span>
+    <span class="hl-keyword">while</span> (actual != <span class="hl-num">NULL</span>) {
+        <span class="hl-type">patient_t</span> *p = actual->paciente;
+        printf(<span class="hl-string">"P%03d    %-6d %-10d %-12d %-10d\n"</span>,
+               p->id, p->edad, p->prioridad_original,
+               actual->tick_salida, p->tiempo_espera);
+        actual = actual->prev;  <span class="hl-comment">// ← Recorrido inverso</span>
+    }
+    printf(<span class="hl-string">"----------------------------------\n"</span>);
+}
+
+<span class="hl-comment">// Llamar en main() después de imprimir_metricas (línea 236):</span>
+imprimir_historial_inverso(registro_historico);</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 11 ── -->
+    <div class="issue issue-yellow open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">11</span>
+            <span class="issue-title">No hay visualización de estado (snapshot) en puntos de la simulación</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Agregar después de sección F (línea 218)</span>
+        </div>
+        <div class="issue-body">
+            <p>El enunciado pide: <em>"mostrar el estado en distintos momentos de la simulación, incluyendo qué pacientes están siendo atendidos, cuáles se encuentran en espera"</em>.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Agregar — Función de snapshot + llamada periódica</div>
+<pre><span class="hl-keyword">#define</span> SNAPSHOT_INTERVAL <span class="hl-num">10</span>
+
+<span class="hl-keyword">void</span> imprimir_snapshot(<span class="hl-type">int</span> tick, <span class="hl-type">espera_t</span>** colas,
+                      <span class="hl-type">doc_t</span>* medicos, <span class="hl-type">int</span> n_docs) {
+    printf(<span class="hl-string">"\n╔══════════════════════════════════════╗\n"</span>);
+    printf(<span class="hl-string">"║   ESTADO DEL SISTEMA — Tick %03d     ║\n"</span>, tick);
+    printf(<span class="hl-string">"╚══════════════════════════════════════╝\n"</span>);
+
+    <span class="hl-comment">// Médicos</span>
+    printf(<span class="hl-string">"Médicos:\n"</span>);
+    <span class="hl-keyword">for</span> (<span class="hl-type">int</span> m = <span class="hl-num">0</span>; m &lt; n_docs; m++) {
+        <span class="hl-keyword">if</span> (medicos[m].occu)
+            printf(<span class="hl-string">"  [%d] Atendiendo P%03d (rest: %d)\n"</span>,
+                   m+<span class="hl-num">1</span>, medicos[m].curr->id,
+                   medicos[m].curr->tiempo_restante);
+        <span class="hl-keyword">else</span>
+            printf(<span class="hl-string">"  [%d] Disponible\n"</span>, m+<span class="hl-num">1</span>);
+    }
+
+    <span class="hl-comment">// Colas de espera</span>
+    <span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++) {
+        <span class="hl-type">int</span> count = <span class="hl-num">0</span>;
+        <span class="hl-type">cola_t</span> *it = colas[i]->front;
+        <span class="hl-keyword">while</span> (it) { count++; it = it->next; }
+        printf(<span class="hl-string">"  Cola Prio %d: %d pacientes\n"</span>, i+<span class="hl-num">1</span>, count);
+    }
+    printf(<span class="hl-string">"\n"</span>);
+}
+
+<span class="hl-comment">// En el bucle principal, después de sección F:</span>
+<span class="hl-keyword">if</span> (tick % SNAPSHOT_INTERVAL == <span class="hl-num">0</span>) {
+    imprimir_snapshot(tick, colas, medicos, n_docs);
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 12 ── -->
+    <div class="issue issue-yellow open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">12</span>
+            <span class="issue-title">No hay detección de acumulación, espera excesiva ni retriage múltiple</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Agregar en el bucle principal</span>
+        </div>
+        <div class="issue-body">
+            <p>El enunciado solicita: <em>"identificar situaciones como acumulación de pacientes, tiempos de espera elevados o múltiples cambios de prioridad sobre un mismo paciente"</em>.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Agregar — Sistema de alertas</div>
+<pre><span class="hl-keyword">#define</span> ALERTA_ACUMULACION    <span class="hl-num">10</span>  <span class="hl-comment">// pacientes en cola</span>
+<span class="hl-keyword">#define</span> ALERTA_ESPERA_MAX     <span class="hl-num">20</span>  <span class="hl-comment">// ticks esperando</span>
+
+<span class="hl-comment">// Dentro del bucle principal, después de actualizar tiempos:</span>
+
+<span class="hl-comment">// Alerta de acumulación</span>
+<span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++) {
+    <span class="hl-type">int</span> count = <span class="hl-num">0</span>;
+    <span class="hl-type">cola_t</span>* it = colas[i]->front;
+    <span class="hl-keyword">while</span> (it) { count++; it = it->next; }
+    <span class="hl-keyword">if</span> (count >= ALERTA_ACUMULACION)
+        printf(<span class="hl-string">"[Tick %03d] ⚠ ALERTA: %d pacientes acumulados "</span>
+               <span class="hl-string">"en Prio %d\n"</span>, tick, count, i+<span class="hl-num">1</span>);
+}
+
+<span class="hl-comment">// Alerta de espera excesiva</span>
+<span class="hl-keyword">for</span> (<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++) {
+    <span class="hl-type">cola_t</span>* it = colas[i]->front;
+    <span class="hl-keyword">while</span> (it) {
+        <span class="hl-keyword">if</span> (it->paciente->tiempo_espera >= ALERTA_ESPERA_MAX)
+            printf(<span class="hl-string">"[Tick %03d] ⚠ ALERTA: P%03d lleva %d ticks "</span>
+                   <span class="hl-string">"esperando (Prio %d)\n"</span>,
+                   tick, it->paciente->id,
+                   it->paciente->tiempo_espera, i+<span class="hl-num">1</span>);
+        it = it->next;
+    }
+}
+
+<span class="hl-comment">// Para múltiples retriage, agregar un campo</span>
+<span class="hl-comment">// int cambios_triage a patient_t e incrementarlo</span>
+<span class="hl-comment">// en cada cambio de prioridad.</span></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 13 ── -->
+    <div class="issue issue-yellow open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">13</span>
+            <span class="issue-title">Agregar campo para rastrear múltiples cambios de prioridad por paciente</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 7–18 (struct patient)</span>
+        </div>
+        <div class="issue-body">
+            <p>Para detectar pacientes con múltiples retriage, agregar un contador a la estructura del paciente.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Agregar campo a patient_t</div>
+<pre><span class="hl-keyword">typedef struct</span> <span class="hl-type">patient</span> {
+    <span class="hl-type">int</span> id;
+    <span class="hl-type">int</span> edad;
+    <span class="hl-type">int</span> prioridad_original;
+    <span class="hl-type">int</span> tiempo_llegada;
+    <span class="hl-type">int</span> tiempo_atencion;
+    <span class="hl-type">float</span> prob_mejora;
+    <span class="hl-type">float</span> prob_empeora;
+    <span class="hl-type">int</span> prioridad_actual;
+    <span class="hl-type">int</span> tiempo_restante;
+    <span class="hl-type">int</span> tiempo_espera;
+    <span class="hl-green"><span class="hl-type">int</span> cambios_triage;</span>  <span class="hl-comment">// ✅ NUEVO: contador de retriage</span>
+} <span class="hl-type">patient_t</span>;
+
+<span class="hl-comment">// Inicializar en cargar_pacientes (después de línea 344):</span>
+p->cambios_triage = <span class="hl-num">0</span>;
+
+<span class="hl-comment">// Incrementar en sección B del triage (después de línea 154):</span>
+extraido->cambios_triage++;
+
+<span class="hl-comment">// Alertar si supera un umbral:</span>
+<span class="hl-keyword">if</span> (extraido->cambios_triage >= <span class="hl-num">3</span>)
+    printf(<span class="hl-string">"[Tick %03d] ⚠ ALERTA: P%03d ha cambiado de "</span>
+           <span class="hl-string">"prioridad %d veces\n"</span>,
+           tick, extraido->id, extraido->cambios_triage);</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECCIÓN 4: CALIDAD DE CÓDIGO                          -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="section-header">
+        <span class="badge badge-blue">&#x1F527; Calidad</span>
+        <h2>Mejoras de Calidad</h2>
+    </div>
+
+    <!-- ── Issue 14 ── -->
+    <div class="issue issue-blue open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">14</span>
+            <span class="issue-title">Carácter no portable: \xA1 en lugar de cadena segura</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Línea 468</span>
+        </div>
+        <div class="issue-body">
+            <p>El escape <code>\xA1</code> (Latin-1 para "í") se muestra como basura en terminales UTF-8.</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Actual</div>
+<pre><span class="line-num">468</span> printf(<span class="hl-string">"\nPacientes Cr\xA1ticos..."</span>);</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución — Usar texto ASCII puro</div>
+<pre>printf(<span class="hl-string">"\nPacientes Criticos (Prio 1) atendidos en &lt;= %d ticks: %.1f%%\n"</span>,
+       umbral, porcentaje_criticos);</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 15 ── -->
+    <div class="issue issue-blue open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">15</span>
+            <span class="issue-title">Mezcla inconsistente de idiomas (inglés/español)</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Todo el archivo</span>
+        </div>
+        <div class="issue-body">
+            <p>Los structs están en inglés (<code>patient_t</code>, <code>doc_t</code>) mientras las funciones en español (<code>crearColaEspera</code>, <code>encolar</code>). Las variables mezclan ambos (<code>pacientes</code>, <code>front</code>, <code>cabeza</code>). Elegir <strong>un solo idioma</strong> y mantenerlo consistente.</p>
+            <div class="alert alert-info">
+                <strong>💡 Recomendación:</strong> Dado que el proyecto es académico en español, usar español para todo: <code>paciente_t</code>, <code>medico_t</code>, <code>nodo_cola_t</code>, etc. O bien todo en inglés. Lo importante es la consistencia.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Issue 16 ── -->
+    <div class="issue issue-blue open">
+        <div class="issue-header" onclick="this.parentElement.classList.toggle('open')">
+            <span class="issue-number">16</span>
+            <span class="issue-title">El código de retorno de main() no refleja errores</span>
+            <span class="issue-toggle">&#9660;</span>
+        </div>
+        <div class="issue-meta">
+            <span class="meta-tag">programa.c</span>
+            <span class="meta-tag">Líneas 101–104</span>
+        </div>
+        <div class="issue-body">
+            <p>Cuando falla la carga de pacientes, retorna <code>0</code> (éxito) en vez de <code>1</code> (error).</p>
+
+            <div class="code-block">
+                <div class="code-label code-label-bad">&#10060; Actual</div>
+<pre><span class="line-num">101</span> <span class="hl-keyword">if</span> (n_docs == -<span class="hl-num">1</span>){
+<span class="line-num">102</span>     printf(<span class="hl-string">"Hubo un error al cargar los pacientes.\n"</span>);
+<span class="line-num">103</span>     <span class="hl-keyword">return</span> <span class="hl-num">0</span>;  <span class="hl-comment">// ← Indica éxito falsamente</span>
+<span class="line-num">104</span> }</pre>
+            </div>
+
+            <div class="code-block">
+                <div class="code-label code-label-good">&#9989; Solución</div>
+<pre><span class="hl-keyword">if</span> (n_docs == -<span class="hl-num">1</span>){
+    printf(<span class="hl-string">"Hubo un error al cargar los pacientes.\n"</span>);
+    <span class="hl-comment">// Liberar memoria ya asignada antes de salir</span>
+    <span class="hl-keyword">for</span>(<span class="hl-type">int</span> i = <span class="hl-num">0</span>; i &lt; <span class="hl-num">4</span>; i++) free(colas[i]);
+    free(pacientes);
+    free(pila_rollback);
+    free(registro_historico);
+    <span class="hl-keyword">return</span> <span class="hl-num">1</span>;  <span class="hl-comment">// ✅ Código de error</span>
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- CHECKLIST FINAL                                        -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="section-header">
+        <span class="badge badge-blue">&#x2611; Checklist</span>
+        <h2>Cumplimiento de Requisitos</h2>
+    </div>
+
+    <table class="checklist">
+        <thead>
+            <tr>
+                <th style="width:40px">#</th>
+                <th>Requisito</th>
+                <th style="width:80px">Estado</th>
+                <th>Corrección</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>Lenguaje C puro</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>Sin arreglos como sustituto de TDAs</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #1</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Colas separadas por prioridad (4)</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>FIFO dentro de cada prioridad</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>Simulación por ticks discretos</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>Múltiples médicos en paralelo</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>Llegada según tiempo_llegada</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>Triage dinámico (empeora/mejora)</td>
+                <td class="check-warn">⚠️</td>
+                <td>Bug probabilidades en lector.c — Issue #6</td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td>Pila para registro de cambios</td>
+                <td class="check-ok">✅ OK</td>
+                <td>Estructura correcta</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>Rollback funcional (no hardcodeado)</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #2</td>
+            </tr>
+            <tr>
+                <td>11</td>
+                <td>Lista doblemente enlazada (historial)</td>
+                <td class="check-ok">✅ OK</td>
+                <td>—</td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td>Recorrido en ambos sentidos</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #10</td>
+            </tr>
+            <tr>
+                <td>13</td>
+                <td>Métricas (promedio, máximo, % críticos)</td>
+                <td class="check-warn">⚠️</td>
+                <td>Bug división entera — Issue #4</td>
+            </tr>
+            <tr>
+                <td>14</td>
+                <td>Visualización de estado por tick</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #11</td>
+            </tr>
+            <tr>
+                <td>15</td>
+                <td>Detección acumulación/alertas</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issues #12, #13</td>
+            </tr>
+            <tr>
+                <td>16</td>
+                <td>Archivo como argumento (no hardcodeado)</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #5</td>
+            </tr>
+            <tr>
+                <td>17</td>
+                <td>Manejo correcto de memoria</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #3</td>
+            </tr>
+            <tr>
+                <td>18</td>
+                <td>Generador independiente</td>
+                <td class="check-ok">✅ OK</td>
+                <td>lector.c funcional</td>
+            </tr>
+            <tr>
+                <td>19</td>
+                <td>Probabilidades realistas</td>
+                <td class="check-fail">❌</td>
+                <td>Ver Issue #6</td>
+            </tr>
+            <tr>
+                <td>20</td>
+                <td>Sin lógica hardcodeada</td>
+                <td class="check-fail">❌</td>
+                <td>Issues #2, #5</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ═══════════════ FOOTER ═══════════════ -->
+    <footer class="footer">
+        <p>Auditoría generada el 31 de mayo de 2026 &middot; Archivos analizados: <code>programa.c</code> (469 líneas), <code>lector.c</code> (90 líneas)</p>
+        <p style="margin-top:0.5rem;">16 problemas documentados &middot; 9 requisitos no cumplidos de 20</p>
+    </footer>
+
+</div>
+
+<script>
+    // All issues start collapsed except the first one
+    // Clicking the header toggles the body visibility
+    document.querySelectorAll('.issue-header').forEach(header => {
+        header.addEventListener('click', () => {
+            header.parentElement.classList.toggle('open');
+        });
+    });
+</script>
+</body>
+</html>
